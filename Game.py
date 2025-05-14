@@ -18,8 +18,20 @@ class Game:
 
         self.player = Player([width/2, height/2])
         self.entities = [self.player, Wall([width/4, height/4], [width/2, 50])]
+        self.generate_walls()
 
         self.playing = False
+    def generate_walls(self):
+        """
+            Make walls around the edges of the screen. Called during __init__ and whenever resetting entities.
+        """
+        thickness = 10
+        self.entities.extend([
+            Wall([0,-thickness], [self.width, thickness]),
+            Wall([-thickness,0], [thickness, self.height]),
+            Wall([0,self.height], [self.width, thickness]),
+            Wall([self.width,0], [thickness, self.height]),
+        ])
     
     def handle_events(self):
         for event in pg.event.get():
