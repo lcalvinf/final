@@ -1,7 +1,8 @@
 import pygame as pg
 from utils import *
 
-FRICTION = 200 # strength of friction, px/s^2
+FRICTION = 200              # strength of friction, px/s^2
+COLLISION_ELASTICITY = 0.9  # percentage of energy preserved through collisions
 
 class Entity:
     """
@@ -18,6 +19,10 @@ class Entity:
         self.size = size
         self.vel = [0,0]
         self.acc = [0,0]
+        self.friction = FRICTION
+        """
+            Describes this entity's friction strength in px/s^2
+        """
     
     def get_rect(self):
         return pg.Rect(*self.pos, *self.size)
@@ -27,7 +32,7 @@ class Entity:
             Method called every frame. 
             Subclasses should override this function but still call `super().update()` afterward.
         """
-        self.apply_force(set_mag(self.vel, -FRICTION))
+        self.apply_force(set_mag(self.vel, -self.friction))
 
         old_pos = list(self.pos)
         self.pos = add_vectors(self.pos, scale_vector(self.vel, dt))
@@ -37,8 +42,15 @@ class Entity:
             # The normal force is scaled to counter the velocity, but only the component of the velocity going against the normal force
             # Hence, the dot product -- negated because we're going against the velocity, and *2 so flips rather than just being zeroed out
             dot = dot_product(normal, self.vel)
-            self.apply_force(scale_vector(normal, -dot*2/dt))
+            self.apply_force(scale_vector(normal, -dot*2*COLLISION_ELASTICITY/dt))
         self.vel = add_vectors(self.vel, scale_vector(self.acc, dt))
+
+        # Prevent annoying slow sliding by stopping entities as soon as their velocity get pretty small
+        # Fifty might not seem that small, but:
+        #   1. That's compared to the *square* magnitude of the velocity (v * v = |v|^2), so we're really talking about ~7 pixels per second
+        #   2. pixels per *second*. If you're going less than 7 pixels every second, you're basically not moving
+        if dot_product(self.vel,self.vel) <= 50:
+            self.vel = [0,0]
 
         self.acc = [0,0]
     
@@ -94,8 +106,11 @@ class Player(Entity):
     """
         The class representing the player. Only one instance of this class should exist at any time.
     """
-    R = 10 # the player's radius
-    SPEED = 1000 # player's acceleration, px/s^2
+    R = 10       # the player's radius
+    SPEED = 2000 # player's acceleration, px/s^2
+
+    LOW_FRICTION = 100  # the player's friction when speeding up, px/s^2
+    HIGH_FRICTION = 1000 # the player's friction when slowing down, px/s^2
     def __init__(self, pos):
         super().__init__(pos, [Player.R*2, Player.R*2])
     
@@ -109,6 +124,13 @@ class Player(Entity):
             self.acc[0] = Player.SPEED
         if keys[pg.K_a]:
             self.acc[0] = -Player.SPEED
+        
+        # The player gets slowed down faster when they're not trying to speed up
+        # That way it feels responsive both speeding up and slowing down
+        if self.acc[0] != 0 or self.acc[1] != 0:
+            self.friction = Player.LOW_FRICTION
+        else:
+            self.friction = Player.HIGH_FRICTION
 
         super().update(game, dt)
 
