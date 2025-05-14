@@ -128,7 +128,12 @@ class Player(Entity):
         # The player gets slowed down faster when they're not trying to speed up
         # That way it feels responsive both speeding up and slowing down
         if self.acc[0] != 0 or self.acc[1] != 0:
-            self.friction = Player.LOW_FRICTION
+            # This checks if the acceleration is in the opposite direction to the velocity
+            # if it is, high friction will go in the same direction as the player's controls, so we should do that.
+            if dot_product(self.acc, self.vel) < 0:
+                self.friction = Player.HIGH_FRICTION
+            else:
+                self.friction = Player.LOW_FRICTION
         else:
             self.friction = Player.HIGH_FRICTION
 
