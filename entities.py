@@ -34,7 +34,10 @@ class Entity:
         normal = self.handle_collisions(game)
         if normal is not None:
             self.pos = old_pos
-            self.apply_force(scale_vector(normal, vector_size(self.vel)*2/dt))
+            # The normal force is scaled to counter the velocity, but only the component of the velocity going against the normal force
+            # Hence, the dot product -- negated because we're going against the velocity, and *2 so flips rather than just being zeroed out
+            dot = dot_product(normal, self.vel)
+            self.apply_force(scale_vector(normal, -dot*2/dt))
         self.vel = add_vectors(self.vel, scale_vector(self.acc, dt))
 
         self.acc = [0,0]
@@ -110,7 +113,7 @@ class Player(Entity):
         super().update(game, dt)
 
     def draw(self, screen):
-        pg.draw.circle(screen, BLACK, self.pos, Player.R)
+        pg.draw.circle(screen, BLACK, add_vectors(self.pos, [Player.R,Player.R]), Player.R)
     
 class Wall(Entity):
     """
@@ -123,7 +126,7 @@ class Wall(Entity):
             [pg.Rect(*pos, size[0], 5), [0, -1]],
             [pg.Rect(*pos, 5, size[1]), [-1, 0]],
             [pg.Rect(pos[0]+size[0]-5, pos[1], 5, size[1]), [1, 0]],
-            [pg.Rect(pos[0], pos[1]+size[1]-5, size[0], 5), [0, -1]],
+            [pg.Rect(pos[0], pos[1]+size[1]-5, size[0], 5), [0, 1]],
         ]
 
     def update(self, game, dt):
