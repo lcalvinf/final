@@ -167,6 +167,7 @@ class Ball(Entity):
         super().update(game,dt)
         for hole in game.holes:
             if square_dist(add_vectors(self.pos, [self.radius,self.radius]), hole) <= (self.R+HOLE_R)**2:
+                game.score += 1
                 self.remove()
     def draw(self, screen):
         loc = add_vectors(self.pos, [self.radius, self.radius])
@@ -200,10 +201,6 @@ class Player(Ball):
     def collide(self, entity, game):
         if isinstance(entity, Ball):
             game.ball_hit_this_shot = True
-
-    def remove(self):
-        # You can't remove the player
-        pass
     
 class Wall(Entity):
     """

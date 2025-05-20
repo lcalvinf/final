@@ -1,31 +1,26 @@
+import math
+
 SIZE = [1200,800]
 
-hole_dep = 5 # To make it look normal, we stick the holes on the edges (not corners) in a little
+# To make it look normal, we stick the holes on the edges (not corners) in a little
+hole_dep = [5/SIZE[0], 5/SIZE[1]]
 LAYOUT = {
     "balls": [
-        [0.125, 0.25],
-        [0.25, 0.25],
-        [0.375, 0.25],
-        [0.5, 0.25],
-        [0.625, 0.25],
-        [0.75, 0.25],
-        [0.825, 0.25],
-
-        [0.125, 0.75],
-        [0.25, 0.75],
-        [0.375, 0.75],
-        [0.5, 0.75],
-        [0.625, 0.75],
-        [0.75, 0.75],
-        [0.825, 0.75],
     ],
     "player": [0.5,0.5],
     "holes": [
-        [0,0], [0.5,-hole_dep/SIZE[1]], [1,0],
-        [-hole_dep/SIZE[0],0.5], [1+(hole_dep/SIZE[0]),0.5],
-        [0,1], [0.5,1+(hole_dep/SIZE[1])], [1,1],
-    ]
+        [hole_dep[0],hole_dep[1]], [0.5,-hole_dep[1]], [1-hole_dep[0],hole_dep[1]],
+        [-hole_dep[0],0.5], [1+(hole_dep[0]),0.5],
+        [hole_dep[0],1-hole_dep[1]], [0.5,1+(hole_dep[1])], [1-hole_dep[0],1-hole_dep[1]],
+    ],
+    "score": [0.75, 0]
 }
+
+for i in range(20):
+    angle = (i/20)*math.pi*2
+    LAYOUT["balls"].append(
+        [math.cos(angle)*0.25+0.5, math.sin(angle)*0.25*SIZE[0]/SIZE[1]+0.5]
+    )
 
 HOLE_R = 20
 """

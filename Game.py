@@ -19,6 +19,9 @@ class Game:
         self.screen = pg.display.set_mode((self.width, self.height), pg.RESIZABLE)
         self.clock = pg.time.Clock()
 
+        self.font = pg.font.SysFont("sans-serif", 50)
+        self.smallfont = pg.font.SysFont("sans-serif", 30)
+
         self.reset()
 
         self.playing = False
@@ -38,6 +41,7 @@ class Game:
         """
             Is the player currently making a shot?
         """
+
     
     def reset(self):
         """
@@ -55,6 +59,7 @@ class Game:
         self.generate_walls()
 
         self.ball_hit_this_shot = False
+        self.score = 0
     def generate_walls(self):
         """
             Make walls around the edges of the screen. Called during __init__ and whenever resetting entities.
@@ -101,6 +106,10 @@ class Game:
             if not entity.to_remove:
                 new_entities.append(entity)
         self.entities = new_entities
+        if self.player.to_remove:
+            self.playing = False
+            self.score -= 1
+            return
 
         if self.shot and not ball_moving:
             self.end_shot()
@@ -111,11 +120,15 @@ class Game:
         for entity in self.entities:
             entity.draw(self.screen)
         
-        for hole in self.holes:
-            pg.draw.circle(self.screen, COLORS["hole"], hole, HOLE_R)
+        self.draw_HUD()
 
         pg.display.flip()
 
+    def draw_HUD(self):
+        for hole in self.holes:
+            pg.draw.circle(self.screen, COLORS["hole"], hole, HOLE_R)
+        
+        self.screen.blit(self.font.render(str(self.score), True, COLORS["foreground"]), [LAYOUT["score"][0]*self.width, LAYOUT["score"][1]*self.height])
 
     def game_over(self, fps):
         """
@@ -130,8 +143,13 @@ class Game:
                     self.quit = True
                 elif event.type == pg.KEYDOWN:
                     self.playing = False
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    self.player = False
 
             self.screen.fill(COLORS["background"])
+            self.screen.blit(self.font.render(str(self.score), True, COLORS["foreground"]), [self.width/2, self.height/8])
+            self.screen.blit(self.font.render("Game Over", True, COLORS["foreground"]), [self.width/2-100, self.height/4])
+            self.screen.blit(self.smallfont.render("Press any key to play again", True, COLORS["foreground"]), [self.width/2-150, self.height/2])
 
             pg.display.flip()
             self.clock.tick(fps)
