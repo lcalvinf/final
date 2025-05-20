@@ -1,7 +1,7 @@
 import pygame as pg
 from utils import *
 
-FRICTION = 200              # strength of friction, px/s^2
+FRICTION = 400              # strength of friction, px/s^2
 COLLISION_ELASTICITY = 0.9  # percentage of energy preserved through collisions
 
 class Entity:
@@ -17,11 +17,28 @@ class Entity:
     def __init__(self, pos, size):
         self.pos = pos
         self.size = size
+        """
+            A vector representing the entity's width and height in pixels
+        """
+
         self.vel = [0,0]
         self.acc = [0,0]
+
         self.friction = FRICTION
         """
             Describes this entity's friction strength in px/s^2
+        """
+
+        self.mass = 0
+        """
+            Describes this entity's mass, in an arbitrary unit.
+            Set mass to 0 to indicate the entity cannot move.
+        """
+
+        self.radius = 0
+        """
+            The entity's radius in pixels, if it is circular (or should use circle-based collisions)
+            To treat the entity as a rectangle, set this to 0
         """
     
     def get_rect(self):
@@ -32,17 +49,29 @@ class Entity:
             Method called every frame. 
             Subclasses should override this function but still call `super().update()` afterward.
         """
-        self.apply_force(set_mag(self.vel, -self.friction))
+
+        # The first time update is called dt=0, which means when we divide by dt it doesn't work.
+        # Nobody's gonna miss one update call, right?
+        if dt == 0:
+            return
+        self.apply_force(set_mag(self.vel, -self.friction*self.mass))
 
         old_pos = list(self.pos)
         self.pos = add_vectors(self.pos, scale_vector(self.vel, dt))
-        normal = self.handle_collisions(game)
+        normal, entity = self.handle_collisions(game)
         if normal is not None:
             self.pos = old_pos
             # The normal force is scaled to counter the velocity, but only the component of the velocity going against the normal force
-            # Hence, the dot product -- negated because we're going against the velocity, and *2 so flips rather than just being zeroed out
-            dot = dot_product(normal, self.vel)
-            self.apply_force(scale_vector(normal, -dot*2*COLLISION_ELASTICITY/dt))
+            # That's what the dot product does. We scale by two to fully reverse rather than just cancelling it out
+            # Also, the velocity is relative to the entity we're colliding with, hence why we subtract entity.vel from self.vel
+            dot = dot_product(normal, sub_vectors(self.vel, entity.vel))
+            force = scale_vector(normal, dot*2*COLLISION_ELASTICITY/dt)
+
+            # We split the force over the two entities according to their portion of the system's mass.
+            total_mass = self.mass+entity.mass
+            self.apply_force(scale_vector(force, -self.mass/total_mass))
+            entity.apply_force(scale_vector(force, entity.mass/total_mass))
+
         self.vel = add_vectors(self.vel, scale_vector(self.acc, dt))
 
         # Prevent annoying slow sliding by stopping entities as soon as their velocity get pretty small
@@ -55,31 +84,41 @@ class Entity:
         self.acc = [0,0]
     
     def apply_force(self, force):
-        self.acc = add_vectors(self.acc, force)
+        self.acc = add_vectors(self.acc, scale_vector(force, self.mass))
     
     def handle_collisions(self, game):
         """
             Checks for collision with all solid entities in the game.
-            Returns `None` if no collisions were found, otherwise returns a normal vector indicating which
-            way the normal force from the collisions should point. The normal vector is normalized.
+            Returns `None, None` if no collisions were found, otherwise returns a normal vector indicating which
+            way the normal force from the collisions should point and the entity collided with.
+            The normal vector is normalized.
         """
         normal = None
+        collided = None
         for entity in game.entities:
-            entity: Entity
             if entity == self:
                 continue
             if not type(entity).SOLID:
                 continue
-            if entity.get_rect().colliderect(self.get_rect()):
+            did_collide = False
+            if self.radius != 0 and entity.radius != 0:
+                self_pos = self.get_rect().center
+                ent_pos = entity.get_rect().center
+                did_collide = square_dist(self_pos, ent_pos) <= (self.radius+entity.radius)**2
+            else:
+                did_collide = entity.get_rect().colliderect(self.get_rect())
+
+            if did_collide:
                 self.collide(entity)
                 clip = entity.get_rect().clip(self.get_rect())
+                collided = entity
                 for normal_zone, normal_vec in entity.normals:
                     if clip.colliderect(normal_zone):
                         normal = normal_vec
                         break
                 else:
                     normal = normalize_vector(sub_vectors(self.get_rect().center, entity.get_rect().center))
-        return normal
+        return normal, collided
 
     def collide(self, entity):
         """
@@ -102,17 +141,30 @@ class Entity:
         """
         pass
 
-class Player(Entity):
+class Ball(Entity):
+    """
+        A ball.
+        This object is solid and circular, and has a mass of 1.
+    """
+    R = 10  # The ball's radius
+    SOLID = True
+    def __init__(self, pos):
+        super().__init__(pos, [Ball.R*2, Ball.R*2])
+        self.normals = []
+        self.mass = 1
+        self.radius = Ball.R
+    def draw(self, screen):
+        pg.draw.circle(screen, BLACK, add_vectors(self.pos, [self.radius,self.radius]), self.radius)
+
+class Player(Ball):
     """
         The class representing the player. Only one instance of this class should exist at any time.
     """
-    R = 10       # the player's radius
     SPEED = 2000 # player's acceleration, px/s^2
 
-    LOW_FRICTION = 100  # the player's friction when speeding up, px/s^2
-    HIGH_FRICTION = 1000 # the player's friction when slowing down, px/s^2
+    SOLID = True
     def __init__(self, pos):
-        super().__init__(pos, [Player.R*2, Player.R*2])
+        super().__init__(pos)
     
     def update(self, game, dt):
         keys = pg.key.get_pressed()
@@ -125,26 +177,17 @@ class Player(Entity):
         if keys[pg.K_a]:
             self.acc[0] = -Player.SPEED
         
-        # The player gets slowed down faster when they're not trying to speed up
-        # That way it feels responsive both speeding up and slowing down
-        if self.acc[0] != 0 or self.acc[1] != 0:
-            # This checks if the acceleration is in the opposite direction to the velocity
-            # if it is, high friction will go in the same direction as the player's controls, so we should do that.
-            if dot_product(self.acc, self.vel) < 0:
-                self.friction = Player.HIGH_FRICTION
-            else:
-                self.friction = Player.LOW_FRICTION
-        else:
-            self.friction = Player.HIGH_FRICTION
 
         super().update(game, dt)
 
     def draw(self, screen):
-        pg.draw.circle(screen, BLACK, add_vectors(self.pos, [Player.R,Player.R]), Player.R)
+        pg.draw.circle(screen, RED, add_vectors(self.pos, [self.radius,self.radius]), self.radius)
     
 class Wall(Entity):
     """
         A stationary obstacle.
+        Has mass set to 0, indicating that it cannot move.
+        Ignores attempts to apply force or update.
     """
     SOLID = True
     def __init__(self, pos, size):
@@ -155,8 +198,12 @@ class Wall(Entity):
             [pg.Rect(pos[0]+size[0]-5, pos[1], 5, size[1]), [1, 0]],
             [pg.Rect(pos[0], pos[1]+size[1]-5, size[0], 5), [0, 1]],
         ]
+        self.mass = 0
 
     def update(self, game, dt):
+        pass
+    
+    def apply_force(self, force):
         pass
 
     def draw(self, screen):
