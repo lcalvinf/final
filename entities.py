@@ -112,7 +112,7 @@ class Entity:
                 did_collide = entity.get_rect().colliderect(self.get_rect())
 
             if did_collide:
-                self.collide(entity)
+                self.collide(entity, game)
                 clip = entity.get_rect().clip(self.get_rect())
                 collided = entity
                 for normal_zone, normal_vec in entity.normals:
@@ -123,7 +123,7 @@ class Entity:
                     normal = normalize_vector(sub_vectors(self.get_rect().center, entity.get_rect().center))
         return normal, collided
 
-    def collide(self, entity):
+    def collide(self, entity, game):
         """
             Method to handle each collision with a solid entity.
             Subclasses should override this method if they want to do anything other than bounce off of entities.
@@ -186,6 +186,8 @@ class Player(Ball):
     
     def update(self, game, dt):
         if pg.mouse.get_pressed()[0]:
+            if not game.shot:
+                game.start_shot()
             if self.speed > 0:
                 self.acc = set_mag(sub_vectors(pg.mouse.get_pos(), self.pos), self.speed)
                 # The player accelerates less the longer they hold down the mouse
@@ -195,6 +197,10 @@ class Player(Ball):
         
 
         super().update(game, dt)
+    def collide(self, entity, game):
+        if isinstance(entity, Ball):
+            game.ball_hit_this_shot = True
+
     def remove(self):
         # You can't remove the player
         pass
