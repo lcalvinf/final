@@ -1,5 +1,7 @@
 import pygame as pg
+from colors import *
 from utils import *
+from layout import HOLE_R
 
 FRICTION = 400              # strength of friction, px/s^2
 COLLISION_ELASTICITY = 0.9  # percentage of energy preserved through collisions
@@ -15,6 +17,7 @@ class Entity:
     """
     SOLID = False
     def __init__(self, pos, size):
+        self.to_remove = False
         self.pos = pos
         self.size = size
         """
@@ -140,21 +143,34 @@ class Entity:
             Subclasses can override this function to detect events, and do not need to call `super().handle_event()`.
         """
         pass
+    
+    def remove(self):
+        """
+            Remove this entity from the game by the next frame.
+        """
+        self.to_remove = True
 
 class Ball(Entity):
     """
         A ball.
         This object is solid and circular, and has a mass of 1.
     """
-    R = 10  # The ball's radius
+    R = 15  # The ball's radius, px
     SOLID = True
     def __init__(self, pos):
         super().__init__(pos, [Ball.R*2, Ball.R*2])
         self.normals = []
         self.mass = 1
         self.radius = Ball.R
+        self.color = COLORS["ball"]
+    def update(self, game, dt):
+        super().update(game,dt)
+        for hole in game.holes:
+            if square_dist(add_vectors(self.pos, [self.radius,self.radius]), hole) <= (self.R+HOLE_R)**2:
+                self.remove()
     def draw(self, screen):
-        pg.draw.circle(screen, BLACK, add_vectors(self.pos, [self.radius,self.radius]), self.radius)
+        loc = add_vectors(self.pos, [self.radius, self.radius])
+        pg.draw.circle(screen, self.color, loc, self.radius)
 
 class Player(Ball):
     """
@@ -166,6 +182,7 @@ class Player(Ball):
     def __init__(self, pos):
         super().__init__(pos)
         self.speed = Player.SPEED
+        self.color = COLORS["player"]
     
     def update(self, game, dt):
         if pg.mouse.get_pressed()[0]:
@@ -178,9 +195,9 @@ class Player(Ball):
         
 
         super().update(game, dt)
-
-    def draw(self, screen):
-        pg.draw.circle(screen, RED, add_vectors(self.pos, [self.radius,self.radius]), self.radius)
+    def remove(self):
+        # You can't remove the player
+        pass
     
 class Wall(Entity):
     """
@@ -206,4 +223,4 @@ class Wall(Entity):
         pass
 
     def draw(self, screen):
-        pg.draw.rect(screen, BLACK, self.get_rect())
+        pg.draw.rect(screen, COLORS["foreground"], self.get_rect())

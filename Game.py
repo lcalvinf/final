@@ -2,6 +2,8 @@ import pygame as pg
 from entities import Player, Wall, Ball
 import random
 from utils import *
+from colors import *
+from layout import *
 
 class Game:
     """
@@ -17,11 +19,12 @@ class Game:
         self.screen = pg.display.set_mode((self.width, self.height), pg.RESIZABLE)
         self.clock = pg.time.Clock()
 
-        self.player = Player([width/2, height/2])
+        self.player = Player([width*LAYOUT["player"][0], height*LAYOUT["player"][1]])
         self.entities = [self.player]
-        for i in range(random.randint(3,5)):
+        self.holes = [[x*self.width, y*self.height] for x,y in LAYOUT["holes"]]
+        for x,y in LAYOUT["balls"]:
             self.entities.append(
-                Ball([random.random()*self.width, random.random()*self.height])
+                Ball([x*self.width, y*self.height])
             )
         self.generate_walls()
 
@@ -47,14 +50,21 @@ class Game:
     
     def update(self):
         dt = self.clock.get_time()/1000 # seconds since last frame
+        new_entities = []
         for entity in self.entities:
             entity.update(self, dt)
+            if not entity.to_remove:
+                new_entities.append(entity)
+        self.entities = new_entities
 
     def draw(self):
-        self.screen.fill(WHITE)
+        self.screen.fill(COLORS["background"])
 
         for entity in self.entities:
             entity.draw(self.screen)
+        
+        for hole in self.holes:
+            pg.draw.circle(self.screen, COLORS["hole"], hole, HOLE_R)
 
         pg.display.flip()
 

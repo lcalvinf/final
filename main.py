@@ -1,5 +1,6 @@
 from Game import Game
+from layout import SIZE
 
-game = Game(1200,900)
+game = Game(*SIZE)
 
 game.run(60)
