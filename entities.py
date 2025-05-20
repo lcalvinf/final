@@ -167,15 +167,8 @@ class Player(Ball):
         super().__init__(pos)
     
     def update(self, game, dt):
-        keys = pg.key.get_pressed()
-        if keys[pg.K_w]:
-            self.acc[1] = -Player.SPEED
-        if keys[pg.K_s]:
-            self.acc[1] = Player.SPEED
-        if keys[pg.K_d]:
-            self.acc[0] = Player.SPEED
-        if keys[pg.K_a]:
-            self.acc[0] = -Player.SPEED
+        if pg.mouse.get_pressed()[0]:
+            self.acc = set_mag(sub_vectors(pg.mouse.get_pos(), self.pos), Player.SPEED)
         
 
         super().update(game, dt)
