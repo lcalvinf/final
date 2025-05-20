@@ -160,15 +160,21 @@ class Player(Ball):
     """
         The class representing the player. Only one instance of this class should exist at any time.
     """
-    SPEED = 2000 # player's acceleration, px/s^2
+    SPEED = 3000 # player's maximum acceleration, px/s^2
 
     SOLID = True
     def __init__(self, pos):
         super().__init__(pos)
+        self.speed = Player.SPEED
     
     def update(self, game, dt):
         if pg.mouse.get_pressed()[0]:
-            self.acc = set_mag(sub_vectors(pg.mouse.get_pos(), self.pos), Player.SPEED)
+            if self.speed > 0:
+                self.acc = set_mag(sub_vectors(pg.mouse.get_pos(), self.pos), self.speed)
+                # The player accelerates less the longer they hold down the mouse
+                self.speed -= 1000*dt
+        else:
+            self.speed = Player.SPEED
         
 
         super().update(game, dt)

@@ -18,7 +18,7 @@ class Game:
         self.clock = pg.time.Clock()
 
         self.player = Player([width/2, height/2])
-        self.entities = [self.player, Wall([width/4, height/4], [width/2, 50])]
+        self.entities = [self.player]
         for i in range(random.randint(3,5)):
             self.entities.append(
                 Ball([random.random()*self.width, random.random()*self.height])
