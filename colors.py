@@ -9,7 +9,10 @@ BLUE = pg.Color(0,0,255)
 COLORS = {
     "player": WHITE,
     "ball": RED,
+    "red-ball": RED,
+    "blue-ball": BLUE,
     "background": pg.Color(50,200,50),
     "foreground": BLACK,
-    "hole": BLACK
+    "hole": BLACK,
+    "markers": WHITE
 }

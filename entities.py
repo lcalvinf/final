@@ -1,7 +1,7 @@
 import pygame as pg
-from colors import *
-from utils import *
-from layout import HOLE_R
+from colors import COLORS
+from utils import add_vectors, sub_vectors, dot_product, set_mag, scale_vector, normalize_vector, square_dist, lerp
+from layout import HOLE_R, LAYOUT
 
 FRICTION = 400              # strength of friction, px/s^2
 COLLISION_ELASTICITY = 0.9  # percentage of energy preserved through collisions
@@ -19,6 +19,7 @@ class Entity:
     def __init__(self, pos, size):
         self.to_remove = False
         self.pos = pos
+        self.start_pos = list(pos)
         self.size = size
         """
             A vector representing the entity's width and height in pixels
@@ -163,21 +164,140 @@ class Ball(Entity):
         self.mass = 1
         self.radius = Ball.R
         self.color = COLORS["ball"]
+
+        self.animation = {
+                "going": False
+        }
+        """
+            Stores information about the current animation, if any
+        """
+
+        self.potted_this_shot = False
+        """
+            Was this ball potted during the most recent shot?
+        """
     def update(self, game, dt):
         super().update(game,dt)
+
         for hole in game.holes:
             if square_dist(add_vectors(self.pos, [self.radius,self.radius]), hole) <= (self.R+HOLE_R)**2:
-                game.score += 1
-                self.remove()
+                self.pot(game)
+
+        self.update_animation(dt)
+
+    def update_animation(self,dt):
+        if self.animation["going"]:
+            self.animation["time"] += dt
+            t = self.animation["time"]/self.animation["total_time"]
+            if t > 1:
+                self.animation["going"] = False
+                self.radius = type(self).R
+                self.pos = sub_vectors(self.animation["center"], [self.radius,self.radius])
+            else:
+                self.animation["current"] = lerp(self.animation["start"], self.animation["end"], t)
+                self.pos = sub_vectors(self.animation["center"], [self.animation["current"], self.animation["current"]])
+
+    def start_animation(self, time, start, end):
+        """
+            Start animating the ball's radius linearly.
+            The animation lasts `time` seconds.
+            `start` and `end` are the radii to start and end on, respectively.
+        """
+        self.animation = {
+                "going": True,
+                "time": 0, "current": 0,
+                "total_time": time,
+                "start": start, "end": end,
+                "center": add_vectors(self.pos, [self.radius, self.radius])
+                }
+    def pot(self, game):
+        """
+            Method called whenever the ball is potted, meaning it enters one
+            of the holes on the edges of the board.
+            Subclasses need not call super().pot
+        """
+        game.score += 1
+        self.potted_this_shot = True
+        self.remove()
     def draw(self, screen):
+        if self.animation["going"]:
+            r = self.animation["current"]
+            self.radius = r
+        pg.draw.circle(screen, COLORS["markers"], add_vectors(self.start_pos, [self.radius, self.radius]), 2)
+
+        if self.potted_this_shot:
+            return
         loc = add_vectors(self.pos, [self.radius, self.radius])
         pg.draw.circle(screen, self.color, loc, self.radius)
+
+class RedBall(Ball):
+    """
+        The least valuable kind of ball, worth only 1 point.
+    """
+    R = Ball.R
+    SOLID = True
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.color = COLORS["red-ball"]
+    def update(self, game, dt):
+        if self.potted_this_shot:
+            if not game.shot:
+                for x, y in LAYOUT["red-balls"]:
+                    ball = RedBall([x*game.width, y*game.height])
+                    game.add_entity(ball)
+                    ball.start_animation(0.125,0,RedBall.R)
+                self.remove()
+            return
+        super().update(game, dt)
+    def pot(self, game):
+        if self.potted_this_shot:
+            return
+
+        if all([not isinstance(ent, RedBall) or ent == self for ent in game.entities]):
+            game.score += 1
+            self.vel = [0,0]
+            self.potted_this_shot = True
+        else:
+            super().pot(game)
+
+
+class BlueBall(Ball):
+    """
+        The more valuable kind of ball, which respawns when potted.
+    """
+    R = Ball.R
+    SOLID = True
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.color = COLORS["blue-ball"]
+        self.start_pos = list(pos)
+    def update(self, game, dt):
+        if self.potted_this_shot:
+            if not game.shot:
+                self.potted_this_shot = False
+                self.pos = list(self.start_pos)
+                self.start_animation(0.125, 0, BlueBall.R)
+            else:
+                return
+        super().update(game, dt)
+    def draw(self, screen):
+        if self.potted_this_shot:
+            return
+        super().draw(screen)
+    def pot(self, game):
+        if self.potted_this_shot:
+            return
+        game.score += 4
+        self.vel = [0,0]
+        self.potted_this_shot = True
+
+
 
 class Player(Ball):
     """
         The class representing the player. Only one instance of this class should exist at any time.
     """
-    SPEED = 3000 # player's maximum acceleration, px/s^2
+    SPEED = 2000 # player's maximum acceleration, px/s^2
 
     SOLID = True
     def __init__(self, pos):
@@ -200,7 +320,7 @@ class Player(Ball):
         super().update(game, dt)
     def collide(self, entity, game):
         if isinstance(entity, Ball):
-            game.ball_hit_this_shot = True
+            game.shots_since_hit = 0
     
 class Wall(Entity):
     """
