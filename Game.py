@@ -70,7 +70,7 @@ class Game:
 
         self.generate_walls()
 
-        self.shots_left = 20
+        self.shots_left = 30
         self.score = 0
         self.shot = False
 

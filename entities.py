@@ -270,7 +270,12 @@ class RedBall(Ball):
             return
 
         if all([not isinstance(ent, RedBall) or ent == self for ent in game.entities]):
-            game.score += 10
+            # Sinking all five reds gives you  4+this number total points
+            # That needs to be significantly more than sinking all five blues to be worth it
+            # 5 blues times 4 points per blue is 20 points for sinking all the blues
+            # So this number has to be at least 16 just to break even
+            # It should be more to make going for the reds appealing as a gamble
+            game.score += 20
             self.vel = [0,0]
             self.potted_this_shot = True
         else:
@@ -337,6 +342,7 @@ class Player(Ball):
 
     def pot(self, game):
         self.pos = list(self.start_pos)
+        self.start_animation(0.125, 0, self.radius)
     
 class Wall(Entity):
     """
