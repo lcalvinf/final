@@ -1,6 +1,7 @@
 import pygame as pg
+import math
 from colors import COLORS
-from utils import add_vectors, sub_vectors, dot_product, set_mag, scale_vector, normalize_vector, square_dist, lerp
+from utils import add_vectors, sub_vectors, dot_product, set_mag, scale_vector, normalize_vector, square_dist, lerp, vector_size, vector_angle, rotate_vector
 from layout import HOLE_R, LAYOUT
 
 FRICTION = 400              # strength of friction, px/s^2
@@ -223,12 +224,27 @@ class Ball(Entity):
         if self.animation["going"]:
             r = self.animation["current"]
             self.radius = r
-        pg.draw.circle(screen, COLORS["markers"], add_vectors(self.start_pos, [self.radius, self.radius]), 2)
 
         if self.potted_this_shot:
             return
         loc = add_vectors(self.pos, [self.radius, self.radius])
+
+        # Draw a little tail behind the ball
+        vel_size = vector_size(self.vel)
+        if vel_size >= 10:
+            angle = vector_angle([self.vel[0], -self.vel[1]])
+            pg.draw.polygon(screen, 
+                # I can't get apha working so I'm doing it manually
+                self.color.lerp(COLORS["background"],0.5),
+            [
+                sub_vectors(loc, rotate_vector([self.radius,0],angle+math.pi/2)),
+                sub_vectors(loc, rotate_vector([self.radius*2*min(vel_size/200,2),0],angle)),
+                sub_vectors(loc, rotate_vector([self.radius,0],angle-math.pi/2)),
+            ])
+
+        # Draw the actual ball
         pg.draw.circle(screen, self.color, loc, self.radius)
+
 
 class RedBall(Ball):
     """
@@ -254,7 +270,7 @@ class RedBall(Ball):
             return
 
         if all([not isinstance(ent, RedBall) or ent == self for ent in game.entities]):
-            game.score += 1
+            game.score += 10
             self.vel = [0,0]
             self.potted_this_shot = True
         else:
@@ -313,14 +329,14 @@ class Player(Ball):
                 self.acc = set_mag(sub_vectors(pg.mouse.get_pos(), self.pos), self.speed)
                 # The player accelerates less the longer they hold down the mouse
                 self.speed -= 1000*dt
-        else:
+        elif not game.shot:
             self.speed = Player.SPEED
         
 
         super().update(game, dt)
-    def collide(self, entity, game):
-        if isinstance(entity, Ball):
-            game.shots_since_hit = 0
+
+    def pot(self, game):
+        self.pos = list(self.start_pos)
     
 class Wall(Entity):
     """

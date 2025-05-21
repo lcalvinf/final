@@ -1,6 +1,6 @@
 import pygame as pg
 from entities import Player, Wall, Ball, RedBall, BlueBall
-from utils import vector_size, DEBUG
+from utils import vector_size, DEBUG, scale_vector, sub_vectors
 from colors import COLORS
 from layout import LAYOUT, HOLE_R
 
@@ -39,10 +39,9 @@ class Game:
             Set this to True to exit the game entirely
         """
 
-        self.shots_since_hit = 1
+        self.shots_left = 0
         """
-            The number of shots that have occured since the
-            player last hit a ball
+            The number of shots the player has before the game ends
         """
         self.shot = False
         """
@@ -71,8 +70,9 @@ class Game:
 
         self.generate_walls()
 
-        self.shots_since_hit = 1
+        self.shots_left = 20
         self.score = 0
+        self.shot = False
 
     def generate_walls(self):
         """
@@ -99,8 +99,8 @@ class Game:
             Call this once when the player finishes a shot
         """
         self.shot = False
-        self.shots_since_hit += 1
-        if self.shots_since_hit > 2:
+        self.shots_left -= 1
+        if self.shots_left <= 0:
             self.playing = False
 
     def add_entity(self, ent):
@@ -133,16 +133,15 @@ class Game:
         self.entities = new_entities
         self.entities.extend(self.ents_to_add)
         self.ents_to_add = []
-        if self.player.to_remove:
-            self.playing = False
-            self.score -= 1
-            return
 
         if self.shot and not ball_moving and not pg.mouse.get_pressed()[0]:
             self.end_shot()
 
     def draw(self):
         self.screen.fill(COLORS["background"])
+
+        for x, y in LAYOUT["red-balls"]+LAYOUT["blue-balls"]+[LAYOUT["player"]]:
+            pg.draw.circle(self.screen, COLORS["markers"], [x*self.width+Ball.R, y*self.height+Ball.R], 2)
 
         for entity in self.entities:
             entity.draw(self.screen)
@@ -155,15 +154,25 @@ class Game:
         for hole in self.holes:
             pg.draw.circle(self.screen, COLORS["hole"], hole, HOLE_R)
 
-        self.screen.blit(
-                self.font.render(str(self.score), True, COLORS["foreground"]),
+        self.draw_centered_text(
+                self.font, str(self.score), COLORS["foreground"],
                 [LAYOUT["score"][0]*self.width, LAYOUT["score"][1]*self.height]
+        )
+
+        self.draw_centered_text(
+                self.font, str(self.shots_left), COLORS["foreground"],
+                [LAYOUT["shot_count"][0]*self.width, LAYOUT["shot_count"][1]*self.height]
         )
         if DEBUG:
             self.screen.blit(
                     self.font.render(str(round(self.clock.get_fps())), True, pg.Color(128,128,128)),
                     [self.width/8, self.height-50]
             )
+
+    def draw_centered_text(self,font, text, color, center_pos):
+        size = font.size(text)
+        self.screen.blit(font.render(text, True, color), sub_vectors(center_pos, scale_vector(size,0.5)))
+
 
     def game_over(self, fps):
         """
@@ -185,20 +194,19 @@ class Game:
                     self.playing = False
 
             self.screen.fill(COLORS["background"])
-            self.screen.blit(
-                    self.font.render(str(self.score), True, COLORS["foreground"]),
+            self.draw_centered_text(
+                    self.font, str(self.score), COLORS["highlight"],
                     [self.width/2, self.height/8]
             )
-            self.screen.blit(
-                    self.font.render("Game Over", True, COLORS["foreground"]),
-                    [self.width/2-100, self.height/4]
+            self.draw_centered_text(
+                    self.font, "Game Over", COLORS["foreground"],
+                    [self.width/2, self.height/5]
             )
-            self.screen.blit(
-                    self.smallfont.render(
-                        "Press any key to play again",
-                        True, COLORS["foreground"]
-                    ),
-                    [self.width/2-150, self.height/2]
+            self.draw_centered_text(
+                    self.smallfont,
+                    "Press any key to play again",
+                    COLORS["foreground"],
+                    [self.width/2, self.height/2]
             )
 
             pg.display.flip()

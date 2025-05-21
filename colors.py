@@ -14,5 +14,6 @@ COLORS = {
     "background": pg.Color(50,200,50),
     "foreground": BLACK,
     "hole": BLACK,
-    "markers": WHITE
+    "markers": WHITE,
+    "highlight": RED
 }
