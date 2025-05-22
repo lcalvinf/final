@@ -64,7 +64,8 @@ class Entity:
         old_pos = list(self.pos)
         self.pos = add_vectors(self.pos, scale_vector(self.vel, dt))
         normal, entity = self.handle_collisions(game)
-        if normal is not None:
+        if entity is not None:
+            game.play_sound("hit")
             self.pos = old_pos
             # The normal force is scaled to counter the velocity, but only the component of the velocity going against the normal force
             # That's what the dot product does. We scale by two to fully reverse rather than just cancelling it out
@@ -217,6 +218,7 @@ class Ball(Entity):
             of the holes on the edges of the board.
             Subclasses need not call super().pot
         """
+        game.play_sound("score")
         game.score += 1
         self.potted_this_shot = True
         self.remove()
@@ -270,6 +272,7 @@ class RedBall(Ball):
             return
 
         if all([not isinstance(ent, RedBall) or ent == self for ent in game.entities]):
+            game.play_sound("reset")
             # Sinking all five reds gives you  4+this number total points
             # That needs to be significantly more than sinking all five blues to be worth it
             # 5 blues times 4 points per blue is 20 points for sinking all the blues
@@ -308,6 +311,7 @@ class BlueBall(Ball):
     def pot(self, game):
         if self.potted_this_shot:
             return
+        game.play_sound("score")
         game.score += 4
         self.vel = [0,0]
         self.potted_this_shot = True
@@ -341,6 +345,7 @@ class Player(Ball):
         super().update(game, dt)
 
     def pot(self, game):
+        game.play_sound("player_sink")
         self.pos = list(self.start_pos)
         self.start_animation(0.125, 0, self.radius)
     

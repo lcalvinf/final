@@ -1,6 +1,6 @@
 import pygame as pg
 from entities import Player, Wall, Ball, RedBall, BlueBall
-from utils import vector_size, DEBUG, scale_vector, sub_vectors
+from utils import vector_size, DEBUG, scale_vector, sub_vectors, SOUNDS
 from colors import COLORS
 from layout import LAYOUT, HOLE_R
 
@@ -26,6 +26,8 @@ class Game:
 
         self.font = pg.font.SysFont("sans-serif", 50)
         self.smallfont = pg.font.SysFont("sans-serif", 30)
+
+        self.load_sounds()
 
         self.reset()
 
@@ -73,6 +75,24 @@ class Game:
         self.shots_left = 30
         self.score = 0
         self.shot = False
+
+    def load_sounds(self):
+        if not SOUNDS:
+            return
+        self.sounds = {}
+        pg.mixer.init()
+        sounds = {
+            "hit": "hit.wav",
+            "score": "score.wav",
+            "player_sink": "player_sink.wav",
+            "reset": "reset.wav"
+        }
+        for sound in sounds:
+            self.sounds[sound] = pg.mixer.Sound(f"./sounds/{sounds[sound]}")
+    def play_sound(self, sound):
+        if not SOUNDS:
+            return
+        self.sounds[sound].play()
 
     def generate_walls(self):
         """
