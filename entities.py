@@ -325,7 +325,7 @@ class BlackBall(Ball):
     """
         The smallest ball, which respawns and loses you points when potted.
     """
-    R = Ball.R*0.5
+    R = Ball.R*0.75
     SOLID = True
     def __init__(self, pos):
         super().__init__(pos)
