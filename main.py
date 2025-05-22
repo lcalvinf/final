@@ -3,4 +3,4 @@ from layout import SIZE
 
 game = Game(*SIZE)
 
-game.run(60)
+game.start(60)

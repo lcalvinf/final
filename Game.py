@@ -25,6 +25,7 @@ class Game:
         self.clock = pg.time.Clock()
 
         self.font = pg.font.SysFont("sans-serif", 50)
+        self.bigfont = pg.font.SysFont("sans-serif", 80)
         self.smallfont = pg.font.SysFont("sans-serif", 30)
 
         self.load_sounds()
@@ -98,7 +99,9 @@ class Game:
             "hit": "hit.wav",
             "score": "score.wav",
             "player_sink": "player_sink.wav",
-            "reset": "reset.wav"
+            "reset": "reset.wav",
+            "lose_points": "bad.wav",
+            "extra_good": "extra.wav"
         }
         for sound in sounds:
             self.sounds[sound] = pg.mixer.Sound(f"./sounds/{sounds[sound]}")
@@ -192,17 +195,19 @@ class Game:
         for entity in self.entities:
             entity.draw(self.screen)
 
+        self.draw_holes()
         self.draw_HUD()
 
         for particle in self.particles:
             particle.draw(self.screen)
 
         pg.display.flip()
-
-    def draw_HUD(self):
+    
+    def draw_holes(self):
         for hole in self.holes:
             pg.draw.circle(self.screen, COLORS["hole"], hole, HOLE_R)
 
+    def draw_HUD(self):
         self.draw_centered_text(
                 self.font, "Score: "+str(self.score), COLORS["foreground"],
                 [LAYOUT["score"][0]*self.width, LAYOUT["score"][1]*self.height]
@@ -258,6 +263,44 @@ class Game:
             self.draw_centered_text(
                     self.smallfont,
                     "Press any key to play again",
+                    COLORS["foreground"],
+                    [self.width/2, self.height/2]
+            )
+
+            pg.display.flip()
+            self.clock.tick(fps)
+
+        if not self.quit:
+            self.run(fps)
+    
+    def start(self, fps):
+        """
+            Display the start screen.
+        """
+        self.playing = True
+        self.reset()
+        while self.playing and not self.quit:
+            for event in pg.event.get():
+                if event.type == pg.QUIT or (
+                        event.type == pg.KEYDOWN and event.key == pg.K_q
+                ):
+                    self.quit = True
+                elif event.type == pg.KEYDOWN or event.type == pg.MOUSEBUTTONDOWN:
+                    self.playing = False
+
+            self.screen.fill(COLORS["background"])
+            for entity in self.entities:
+                entity.draw(self.screen)
+            self.draw_holes()
+
+            self.draw_centered_text(
+                    self.bigfont, "Trouble!", COLORS["markers"],
+                    [self.width/2, self.height/8]
+            )
+            self.player.draw(self.screen)
+            self.draw_centered_text(
+                    self.smallfont,
+                    "Press any key to start",
                     COLORS["foreground"],
                     [self.width/2, self.height/2]
             )

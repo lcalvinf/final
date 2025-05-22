@@ -348,7 +348,7 @@ class BlackBall(Ball):
     def pot(self, game):
         if self.potted_this_shot:
             return
-        game.play_sound("score")
+        game.play_sound("lose_points")
         game.score = max(game.score-5, 0)
         game.add_particle(TextPopup(game, "-5", self.color, self.pos))
         self.vel = [0,0]
@@ -377,7 +377,7 @@ class GoldBall(Ball):
     def pot(self, game):
         if self.potted_this_shot:
             return
-        game.play_sound("score")
+        game.play_sound("extra_good")
         game.score += 7
         game.add_particle(TextPopup(game, "+7", self.color, self.pos))
         self.vel = [0,0]
