@@ -1,7 +1,7 @@
 import math
 
 DEBUG = False
-SOUNDS = True
+SOUNDS = False
 
 def lerp(a: float, b: float, t:float):
     return (1-t)*a+t*b

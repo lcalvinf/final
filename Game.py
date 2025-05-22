@@ -175,12 +175,12 @@ class Game:
             pg.draw.circle(self.screen, COLORS["hole"], hole, HOLE_R)
 
         self.draw_centered_text(
-                self.font, str(self.score), COLORS["foreground"],
+                self.font, "Score: "+str(self.score), COLORS["foreground"],
                 [LAYOUT["score"][0]*self.width, LAYOUT["score"][1]*self.height]
         )
 
         self.draw_centered_text(
-                self.font, str(self.shots_left), COLORS["foreground"],
+                self.font, "Shots Left: "+str(self.shots_left), COLORS["foreground"],
                 [LAYOUT["shot_count"][0]*self.width, LAYOUT["shot_count"][1]*self.height]
         )
         if DEBUG:
@@ -215,12 +215,16 @@ class Game:
 
             self.screen.fill(COLORS["background"])
             self.draw_centered_text(
+                    self.font, "Final Score:", COLORS["foreground"],
+                    [self.width/2, self.height/8-30]
+            )
+            self.draw_centered_text(
                     self.font, str(self.score), COLORS["highlight"],
                     [self.width/2, self.height/8]
             )
             self.draw_centered_text(
                     self.font, "Game Over", COLORS["foreground"],
-                    [self.width/2, self.height/5]
+                    [self.width/2, self.height/3]
             )
             self.draw_centered_text(
                     self.smallfont,
