@@ -3,6 +3,7 @@ import math
 from colors import COLORS
 from utils import add_vectors, sub_vectors, dot_product, set_mag, scale_vector, normalize_vector, square_dist, lerp, vector_size, vector_angle, rotate_vector
 from layout import HOLE_R, LAYOUT
+from particles import TextPopup
 
 FRICTION = 400              # strength of friction, px/s^2
 COLLISION_ELASTICITY = 0.9  # percentage of energy preserved through collisions
@@ -219,6 +220,7 @@ class Ball(Entity):
             Subclasses need not call super().pot
         """
         game.play_sound("score")
+        game.add_particle(TextPopup(game, "+1", self.color, self.pos))
         game.score += 1
         self.potted_this_shot = True
         self.remove()
@@ -279,6 +281,7 @@ class RedBall(Ball):
             # So this number has to be at least 16 just to break even
             # It should be more to make going for the reds appealing as a gamble
             game.score += 20
+            game.add_particle(TextPopup(game, "Red Clear!", self.color, [game.width/2-50,game.height/2-25]))
             self.vel = [0,0]
             self.potted_this_shot = True
         else:
@@ -313,6 +316,7 @@ class BlueBall(Ball):
             return
         game.play_sound("score")
         game.score += 4
+        game.add_particle(TextPopup(game, "+4", self.color, self.pos))
         self.vel = [0,0]
         self.potted_this_shot = True
 

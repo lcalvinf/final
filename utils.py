@@ -5,6 +5,8 @@ SOUNDS = False
 
 def lerp(a: float, b: float, t:float):
     return (1-t)*a+t*b
+def smooth(t: float) -> float:
+    return 3*t*t-2*t*t*t
 
 def add_vectors(a: list[float], b: list[float]):
     return [a[0]+b[0], a[1]+b[1]]

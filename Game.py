@@ -72,6 +72,8 @@ class Game:
 
         self.generate_walls()
 
+        self.particles = []
+
         self.shots_left = 30
         self.score = 0
         self.shot = False
@@ -129,6 +131,11 @@ class Game:
         """
         self.ents_to_add.append(ent)
 
+    def add_particle(self, particle):
+        # The entities all update before the particles, so whenever add_particle
+        # gets called we haven't started updating the particles and this is safe
+        self.particles.append(particle)
+
     def handle_events(self):
         for event in pg.event.get():
             if event.type == pg.QUIT or (
@@ -154,6 +161,14 @@ class Game:
         self.entities.extend(self.ents_to_add)
         self.ents_to_add = []
 
+        new_particles = []
+        for particle in self.particles:
+            particle.update(self, dt)
+            if not particle.to_remove:
+                new_particles.append(particle)
+        self.particles = new_particles
+
+
         if self.shot and not ball_moving and not pg.mouse.get_pressed()[0]:
             self.end_shot()
 
@@ -167,6 +182,9 @@ class Game:
             entity.draw(self.screen)
 
         self.draw_HUD()
+
+        for particle in self.particles:
+            particle.draw(self.screen)
 
         pg.display.flip()
 
