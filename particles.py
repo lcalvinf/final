@@ -1,6 +1,5 @@
 import pygame as pg
 import random
-from utils import smooth
 
 class Particle:
     """

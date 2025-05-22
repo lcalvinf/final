@@ -8,6 +8,8 @@ LAYOUT = {
 # Balls
     "red-balls": [],
     "blue-balls": [],
+    "black-ball": [0.5, 0.3],
+    "gold-ball": [0.5, 0.7],
     "player": [0.5, 0.5],
 
 # Board

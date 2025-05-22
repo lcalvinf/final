@@ -1,5 +1,5 @@
 import pygame as pg
-from entities import Player, Wall, Ball, RedBall, BlueBall
+from entities import Player, Wall, Ball, RedBall, BlueBall, BlackBall, GoldBall
 from utils import vector_size, DEBUG, scale_vector, sub_vectors, SOUNDS
 from colors import COLORS
 from layout import LAYOUT, HOLE_R
@@ -69,6 +69,17 @@ class Game:
             self.entities.append(RedBall([x*self.width, y*self.height]))
         for x, y in LAYOUT["blue-balls"]:
             self.entities.append(BlueBall([x*self.width, y*self.height]))
+
+        self.entities.extend([
+            BlackBall(
+                [self.width*LAYOUT["black-ball"][0],
+                 self.height*LAYOUT["black-ball"][1]]
+            ),
+            GoldBall(
+                [self.width*LAYOUT["gold-ball"][0],
+                 self.height*LAYOUT["gold-ball"][1]]
+            )
+        ])
 
         self.generate_walls()
 
@@ -175,8 +186,8 @@ class Game:
     def draw(self):
         self.screen.fill(COLORS["background"])
 
-        for x, y in LAYOUT["red-balls"]+LAYOUT["blue-balls"]+[LAYOUT["player"]]:
-            pg.draw.circle(self.screen, COLORS["markers"], [x*self.width+Ball.R, y*self.height+Ball.R], 2)
+        for x, y in LAYOUT["red-balls"]+LAYOUT["blue-balls"]+[LAYOUT["black-ball"],LAYOUT["gold-ball"],LAYOUT["player"]]:
+            pg.draw.circle(self.screen, COLORS["markers"], [x*self.width, y*self.height], 2)
 
         for entity in self.entities:
             entity.draw(self.screen)

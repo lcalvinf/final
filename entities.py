@@ -75,9 +75,13 @@ class Entity:
             force = scale_vector(normal, dot*2*COLLISION_ELASTICITY/dt)
 
             # We split the force over the two entities according to their portion of the system's mass.
-            total_mass = self.mass+entity.mass
-            self.apply_force(scale_vector(force, -self.mass/total_mass))
-            entity.apply_force(scale_vector(force, entity.mass/total_mass))
+            # Unless the entity is fixed in place, indicated by a mass of 0
+            if entity.mass == 0:
+                self.apply_force(scale_vector(force, -self.mass))
+            else:
+                total_mass = self.mass+entity.mass
+                self.apply_force(scale_vector(force,-self.mass/total_mass))
+                entity.apply_force(scale_vector(force,entity.mass/total_mass))
 
         self.vel = add_vectors(self.vel, scale_vector(self.acc, dt))
 
@@ -91,7 +95,7 @@ class Entity:
         self.acc = [0,0]
     
     def apply_force(self, force):
-        self.acc = add_vectors(self.acc, scale_vector(force, self.mass))
+        self.acc = add_vectors(self.acc, scale_vector(force, 1/self.mass))
     
     def handle_collisions(self, game):
         """
@@ -162,10 +166,12 @@ class Ball(Entity):
     R = 15  # The ball's radius, px
     SOLID = True
     def __init__(self, pos):
-        super().__init__(pos, [Ball.R*2, Ball.R*2])
+        radius = type(self).R
+        pos = sub_vectors(pos, [radius,radius])
+        super().__init__(pos, [radius*2, radius*2])
         self.normals = []
         self.mass = 1
-        self.radius = Ball.R
+        self.radius = radius
         self.color = COLORS["ball"]
 
         self.animation = {
@@ -297,7 +303,6 @@ class BlueBall(Ball):
     def __init__(self, pos):
         super().__init__(pos)
         self.color = COLORS["blue-ball"]
-        self.start_pos = list(pos)
     def update(self, game, dt):
         if self.potted_this_shot:
             if not game.shot:
@@ -307,16 +312,74 @@ class BlueBall(Ball):
             else:
                 return
         super().update(game, dt)
-    def draw(self, screen):
-        if self.potted_this_shot:
-            return
-        super().draw(screen)
     def pot(self, game):
         if self.potted_this_shot:
             return
         game.play_sound("score")
         game.score += 4
         game.add_particle(TextPopup(game, "+4", self.color, self.pos))
+        self.vel = [0,0]
+        self.potted_this_shot = True
+
+class BlackBall(Ball):
+    """
+        The smallest ball, which respawns and loses you points when potted.
+    """
+    R = Ball.R*0.5
+    SOLID = True
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.color = COLORS["black-ball"]
+        # Realistically, a sphere's volume is proportional to the cube of its radius
+        # And mass is directly proportional to volume (if the object's density is constant)
+        # So we should cube the ratio of radii to find the mass
+        # But the game is 2D so it feels right to square it instead
+        self.mass = (BlackBall.R/Ball.R)**2
+        self.start_pos = list(pos)
+    def update(self, game, dt):
+        if self.potted_this_shot:
+            if not game.shot:
+                self.potted_this_shot = False
+                self.pos = list(self.start_pos)
+                self.start_animation(0.125, 0, BlackBall.R)
+            else:
+                return
+        super().update(game, dt)
+    def pot(self, game):
+        if self.potted_this_shot:
+            return
+        game.play_sound("score")
+        game.score = max(game.score-5, 0)
+        game.add_particle(TextPopup(game, "-5", self.color, self.pos))
+        self.vel = [0,0]
+        self.potted_this_shot = True
+
+class GoldBall(Ball):
+    """
+        The largest ball, which respawns and adds 7 points when potted.
+    """
+    R = Ball.R*1.5
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.color = COLORS["gold-ball"]
+        # See BlackBall.__init__ for an explanation of what the square is doing here
+        self.mass = (GoldBall.R/Ball.R)**2
+        self.start_pos = list(pos)
+    def update(self, game, dt):
+        if self.potted_this_shot:
+            if not game.shot:
+                self.potted_this_shot = False
+                self.pos = list(self.start_pos)
+                self.start_animation(0.125, 0, GoldBall.R)
+            else:
+                return
+        super().update(game, dt)
+    def pot(self, game):
+        if self.potted_this_shot:
+            return
+        game.play_sound("score")
+        game.score += 7
+        game.add_particle(TextPopup(game, "+7", self.color, self.pos))
         self.vel = [0,0]
         self.potted_this_shot = True
 
