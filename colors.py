@@ -18,5 +18,5 @@ COLORS = {
     "foreground": BLACK,
     "hole": BLACK,
     "markers": WHITE,
-    "highlight": RED
+    "highlight": WHITE
 }

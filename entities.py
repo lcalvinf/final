@@ -1,7 +1,7 @@
 import pygame as pg
 import math
 from colors import COLORS
-from utils import add_vectors, sub_vectors, dot_product, set_mag, scale_vector, normalize_vector, square_dist, lerp, vector_size, vector_angle, rotate_vector
+from utils import add_vectors, sub_vectors, dot_product, set_mag, scale_vector, normalize_vector, square_dist, lerp, vector_size, vector_angle, rotate_vector, dist
 from layout import HOLE_R, LAYOUT
 from particles import TextPopup
 
@@ -201,6 +201,7 @@ class Ball(Entity):
             if t > 1:
                 self.animation["going"] = False
                 self.radius = type(self).R
+                self.size = [self.radius*2, self.radius*2]
                 self.pos = sub_vectors(self.animation["center"], [self.radius,self.radius])
             else:
                 self.animation["current"] = lerp(self.animation["start"], self.animation["end"], t)
@@ -230,10 +231,21 @@ class Ball(Entity):
         game.score += 1
         self.potted_this_shot = True
         self.remove()
+    def clear_position(self, game):
+        """
+            Ensure there are no entities covering the ball's current position
+        """
+        loc = add_vectors(self.pos, [self.radius, self.radius])
+        for entity in game.entities:
+            if entity == self:
+                continue
+            if entity.get_rect().collidepoint(*loc):
+                entity.pos = add_vectors(entity.pos, set_mag(sub_vectors(entity.get_rect().center, loc), self.radius*2))
     def draw(self, screen):
         if self.animation["going"]:
             r = self.animation["current"]
             self.radius = r
+            self.size = [self.radius*2, self.radius*2]
 
         if self.potted_this_shot:
             return
@@ -308,6 +320,7 @@ class BlueBall(Ball):
             if not game.shot:
                 self.potted_this_shot = False
                 self.pos = list(self.start_pos)
+                self.clear_position(game)
                 self.start_animation(0.125, 0, BlueBall.R)
             else:
                 return
@@ -335,12 +348,12 @@ class BlackBall(Ball):
         # So we should cube the ratio of radii to find the mass
         # But the game is 2D so it feels right to square it instead
         self.mass = (BlackBall.R/Ball.R)**2
-        self.start_pos = list(pos)
     def update(self, game, dt):
         if self.potted_this_shot:
             if not game.shot:
                 self.potted_this_shot = False
                 self.pos = list(self.start_pos)
+                self.clear_position(game)
                 self.start_animation(0.125, 0, BlackBall.R)
             else:
                 return
@@ -370,6 +383,7 @@ class GoldBall(Ball):
             if not game.shot:
                 self.potted_this_shot = False
                 self.pos = list(self.start_pos)
+                self.clear_position(game)
                 self.start_animation(0.125, 0, GoldBall.R)
             else:
                 return
@@ -414,6 +428,7 @@ class Player(Ball):
     def pot(self, game):
         game.play_sound("player_sink")
         self.pos = list(self.start_pos)
+        self.clear_position(game)
         self.start_animation(0.125, 0, self.radius)
     
 class Wall(Entity):

@@ -250,11 +250,11 @@ class Game:
             self.screen.fill(COLORS["background"])
             self.draw_centered_text(
                     self.font, "Final Score:", COLORS["foreground"],
-                    [self.width/2, self.height/8-30]
+                    [self.width/2, self.height/8-20]
             )
             self.draw_centered_text(
                     self.font, str(self.score), COLORS["highlight"],
-                    [self.width/2, self.height/8]
+                    [self.width/2, self.height/8+20]
             )
             self.draw_centered_text(
                     self.font, "Game Over", COLORS["foreground"],
@@ -294,7 +294,7 @@ class Game:
             self.draw_holes()
 
             self.draw_centered_text(
-                    self.bigfont, "Trouble!", COLORS["markers"],
+                    self.bigfont, "Trouble!", COLORS["highlight"],
                     [self.width/2, self.height/8]
             )
             self.player.draw(self.screen)
